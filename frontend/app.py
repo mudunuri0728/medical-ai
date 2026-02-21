@@ -1,8 +1,9 @@
+import os
 import streamlit as st
 import requests
 
 # 1. Configuration & Global Styling
-API_URL = "http://localhost:8000"
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 st.set_page_config(page_title="MEDICAL_DOC Analyzer", layout="wide", page_icon="🩺")
 
 # Optimized CSS for clean headers and failure summaries

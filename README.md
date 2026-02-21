@@ -14,7 +14,7 @@ medical-ai/
     app.py
   src/
     main.py
-    analyzer.py
+    analysis.py
     ocr.py
     pdfconverter.py
     config.py
@@ -65,6 +65,23 @@ streamlit run frontend/app.py
 ```
 
 Frontend URL: `http://localhost:8501`
+
+## Run with Docker Compose
+
+Build and start the single app container (backend + frontend):
+
+```bash
+docker compose up --build
+```
+
+Stop services:
+
+```bash
+docker compose down
+```
+
+Frontend: `http://localhost:8501`  
+Backend: `http://localhost:8000`
 
 ## API Endpoint
 

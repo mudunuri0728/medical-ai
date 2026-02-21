@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from typing import List, Dict, Any
 import asyncio
 import os
-from src.analyzer import classify_document # Changed from classify_image
+from src.analysis import classify_document # Changed from classify_image
 
 app = FastAPI(title="Medical Document Analysis API")
 UPLOAD_DIR = "uploads"
