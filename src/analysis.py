@@ -7,7 +7,7 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from ocr import extract_text_from_image_async
+from src.textextraction import extract_text_from_image_async
 from src.config import VISION_MODEL_NAME
 
 load_dotenv()
