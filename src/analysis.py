@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from openai import OpenAI, APIStatusError
 
 from src.textextraction import extract_text_from_image_async
-from src.pdfconverter import pdf_to_images # Added to handle PDF pages visually
+from src.pdfconverter import pdf_to_images # Integrated PDF conversion logic
 from src.config import VISION_MODEL_NAME
 
 load_dotenv()
@@ -126,7 +126,7 @@ async def classify_document(file_path: str) -> Dict[str, Any]:
     Main handler for analyzing both Image and PDF files.
     Consolidates text extraction and multimodal visual analysis.
     """
-    # Step 1: Extract text asynchronously (PDF or Image)
+    # Step 1: Extract text asynchronously (All pages of PDF or Image)
     ocr_text = await extract_text_from_image_async(file_path)
     
     # Prepare multimodal message
@@ -142,28 +142,26 @@ async def classify_document(file_path: str) -> Dict[str, Any]:
         }
     ]
 
-    # Step 2: Handle PDF pages as images for visual validation
+    # Step 2: Add visual context
     if file_path.lower().endswith(".pdf"):
-        # Convert PDF pages to images to see signatures/names clearly
+        # NEW LOGIC: Convert PDF pages to images so Vision LLM can scan multi-page visuals
         folder_name = pdf_to_images(file_path)
-        output_dir = os.path.join("uploads/images", folder_name)
+        image_dir = os.path.join("uploads/images", folder_name)
         
-        # Add each page image to the multimodal context
-        for img_file in sorted(os.listdir(output_dir)):
-            img_path = os.path.join(output_dir, img_file)
-            base64_img = image_to_base64(img_path)
+        # Loop through each page image and add it to the message
+        for image_name in sorted(os.listdir(image_dir)):
+            image_path = os.path.join(image_dir, image_name)
+            base64_image = image_to_base64(image_path)
             messages[0]["content"].append({
                 "type": "image_url",
-                "image_url": {"url": f"data:image/png;base64,{base64_img}"}
+                "image_url": {"url": f"data:image/png;base64,{base64_image}"}
             })
     else:
-        # Standard logic for single images
+        # Standard logic for single image uploads
         image_base64 = image_to_base64(file_path)
         messages[0]["content"].append({
             "type": "image_url",
-            "image_url": {
-                "url": f"data:image/png;base64,{image_base64}"
-            }
+            "image_url": {"url": f"data:image/png;base64,{image_base64}"}
         })
 
     # Step 3: Call AI Model
@@ -178,16 +176,11 @@ async def classify_document(file_path: str) -> Dict[str, Any]:
         )
     except APIStatusError as exc:
         status = getattr(exc, "status_code", "unknown")
-        if status == 403:
-            raise RuntimeError(
-                "OpenRouter 403: key/model permission denied. "
-                "Check OPENAI_API_KEY and VISION_MODEL_NAME access."
-            ) from exc
         raise RuntimeError(f"Model API error ({status}): {str(exc)}") from exc
 
     raw_output = response.choices[0].message.content.strip()
 
-    # Step 4: Parse and Return Result
+    # Step 4: Parse Result
     try:
         return extract_json_from_text(raw_output)
     except Exception:
