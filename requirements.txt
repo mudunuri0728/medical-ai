@@ -1,0 +1,28 @@
+# Core Backend
+# -----------------------------
+fastapi
+uvicorn
+python-multipart
+python-dotenv
+requests
+
+# -----------------------------
+# Vision / OCR
+# -----------------------------
+pillow
+pymupdf
+
+# -----------------------------
+# LlamaIndex
+# -----------------------------
+llama-index
+llama-cloud-services
+# -----------
+# OpenAI SDK
+# -----------------------------
+openai
+
+# -----------------------------
+# Frontend
+# -----------------------------
+streamlit
