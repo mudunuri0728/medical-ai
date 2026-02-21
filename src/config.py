@@ -1,8 +1,13 @@
+import os
+
 # Maximum number of concurrent OCR requests
 MAX_CONCURRENT_OCR: int = 5
 
 # Vision LLM model name (OpenRouter)
-VISION_MODEL_NAME: str = "nvidia/nemotron-nano-12b-v2-vl:free"
+VISION_MODEL_NAME: str = os.getenv(
+    "VISION_MODEL_NAME",
+    "nvidia/nemotron-nano-12b-v2-vl:free",
+)
 
 
 # PDF to image conversion settings

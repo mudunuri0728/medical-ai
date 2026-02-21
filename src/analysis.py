@@ -5,7 +5,7 @@ import re
 from typing import Dict, Any
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import OpenAI, APIStatusError
 
 from src.textextraction import extract_text_from_image_async
 from src.config import VISION_MODEL_NAME
@@ -153,11 +153,23 @@ async def classify_document(file_path: str) -> Dict[str, Any]:
         })
 
     # Step 3: Call AI Model
-    response = client.chat.completions.create(
-        model=VISION_MODEL_NAME,
-        temperature=0.1,
-        messages=messages
-    )
+    if not os.getenv("OPENAI_API_KEY"):
+        raise RuntimeError("OPENAI_API_KEY is missing in environment.")
+
+    try:
+        response = client.chat.completions.create(
+            model=VISION_MODEL_NAME,
+            temperature=0.1,
+            messages=messages
+        )
+    except APIStatusError as exc:
+        status = getattr(exc, "status_code", "unknown")
+        if status == 403:
+            raise RuntimeError(
+                "OpenRouter 403: key/model permission denied. "
+                "Check OPENAI_API_KEY and VISION_MODEL_NAME access."
+            ) from exc
+        raise RuntimeError(f"Model API error ({status}): {str(exc)}") from exc
 
     raw_output = response.choices[0].message.content.strip()
 
