@@ -11,10 +11,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
+COPY .streamlit ./.streamlit
 COPY frontend ./frontend
 COPY src ./src
 COPY uploads/.gitkeep ./uploads/.gitkeep
 
 EXPOSE 8000 8501
 
-CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port 8000 & streamlit run frontend/app.py --server.address=0.0.0.0 --server.port=8501"]
+CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port 8000 & streamlit run frontend/app.py --server.address=0.0.0.0 --server.port=8501 --server.enableCORS=false --server.enableXsrfProtection=false"]
