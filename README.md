@@ -1,4 +1,13 @@
-<<<<<<< HEAD
+---
+title: Medical AI
+emoji: "🩺"
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 8501
+pinned: false
+---
+
 # Medical AI
 
 Medical document analysis system with:
@@ -95,17 +104,3 @@ Backend: `http://localhost:8000`
 - Uploaded files are stored under `uploads/`.
 - `.env` is ignored by git for security.
 - `uploads/.gitkeep` keeps the folder tracked while ignoring generated files.
-=======
----
-title: Medical Ai
-emoji: 🐠
-colorFrom: yellow
-colorTo: green
-sdk: docker
-pinned: false
-license: mit
-short_description: medical-ai
----
-
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
->>>>>>> 8b8c70076327e2c56ac760df22cbdd042a119a10
