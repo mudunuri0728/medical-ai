@@ -64,7 +64,7 @@ Rules for Generation & Extraction:
 **SECTION 6 - VALIDATION RULES (STRICT AUDIT):**
 Analyze the document for these 4 specific elements:
 1. Patient Name
-2. Date/reported/collected/appoinent/appointment
+2. Date
 3. Medication without Dosages (Note: Lab results like CBC/RBC are NOT medications)
 4. Physician Signature/Stamp Signature/Digital Signature/Doctor Siganture
 
