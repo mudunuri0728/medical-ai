@@ -1,74 +1,115 @@
+
 import os
-import asyncio
+import gc
 from typing import Dict
+from pathlib import Path
 
 from llama_cloud_services import LlamaParse
 from llama_index.core import SimpleDirectoryReader
 
-from src.config import MAX_CONCURRENT_OCR
-
 from dotenv import load_dotenv
 load_dotenv()
 
-# --------------------------------------------------
-# CONCURRENCY CONTROL
-# --------------------------------------------------
-# Limits the number of simultaneous OCR operations
-ocr_semaphore: asyncio.Semaphore = asyncio.Semaphore(
-    MAX_CONCURRENT_OCR
-)
-
-# --------------------------------------------------
-# OCR PARSER INITIALIZATION
-# --------------------------------------------------
-# LlamaParse internally reads the API key from environment
-parser: LlamaParse = LlamaParse(
-    api_key=os.getenv("LLAMA_API_KEY"),
-    result_type="text"
-)
 
 # --------------------------------------------------
 # FILE EXTENSION HANDLERS
 # --------------------------------------------------
-file_extractor: Dict[str, LlamaParse] = {
-    ".jpg": parser,
-    ".jpeg": parser,
-    ".png": parser,
-    ".pdf": parser,
-}
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"}
+MIN_FILE_SIZE = 1024  # 1 KB minimum
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB maximum
 
 
 # --------------------------------------------------
-# ASYNCHRONOUS OCR EXTRACTION
+# FILE VALIDATION
 # --------------------------------------------------
-async def extract_text_from_image_async(file_path: str) -> str:
+def _validate_file(file_path: str) -> tuple[bool, str]:
+    """Validate file before processing."""
+    try:
+        if not os.path.exists(file_path):
+            return False, f"File not found"
+        
+        file_ext = Path(file_path).suffix.lower()
+        if file_ext not in ALLOWED_EXTENSIONS:
+            return False, f"Unsupported file type: {file_ext}"
+        
+        file_size = os.path.getsize(file_path)
+        if file_size < MIN_FILE_SIZE:
+            return False, f"File too small"
+        if file_size > MAX_FILE_SIZE:
+            return False, f"File too large"
+        
+        if not os.access(file_path, os.R_OK):
+            return False, "File not readable"
+        
+        return True, "OK"
+    except Exception as e:
+        return False, f"Error: {str(e)}"
+
+
+# --------------------------------------------------
+# SYNCHRONOUS OCR EXTRACTION
+# --------------------------------------------------
+def extract_text_from_image(file_path: str) -> str:
     """
-    Extract text asynchronously from an image or PDF using LlamaParse.
-
-    Concurrency is limited using a semaphore to prevent excessive
-    parallel OCR requests.
-
-    Parameters
-    ----------
-    file_path : str
-        Path to the image or PDF file.
-
-    Returns
-    -------
-    str
-        Extracted text content, or an empty string on failure.
+    Extract text from image/PDF using LlamaParse (PURE SYNC).
+    
+    KEY: Creates FRESH parser for each image to avoid event loop conflicts.
+    Old parser's event loop closes cleanly, new one starts fresh.
     """
-    async with ocr_semaphore:
-        try:
-            documents = await asyncio.to_thread(
-                lambda: SimpleDirectoryReader(
-                    input_files=[file_path],
-                    file_extractor=file_extractor
-                ).load_data()
-            )
-
-            return "\n".join(doc.text for doc in documents).strip()
-
-        except Exception as exc:
-            print(f"OCR failed for {file_path}: {exc}")
+    try:
+        is_valid, msg = _validate_file(file_path)
+        if not is_valid:
+            print(f"File validation failed: {msg}")
             return ""
+        
+        filename = os.path.basename(file_path)
+        print(f"→ OCR extraction: {filename}")
+        
+        # CRITICAL: Create FRESH parser for this image (not global)
+        # This ensures each image gets a clean event loop context
+        fresh_parser = LlamaParse(
+            api_key=os.getenv("LLAMA_API_KEY"),
+            result_type="text"
+        )
+        
+        # Create extractor dict with fresh parser
+        fresh_extractor = {
+            ".jpg": fresh_parser,
+            ".jpeg": fresh_parser,
+            ".png": fresh_parser,
+            ".pdf": fresh_parser,
+        }
+        
+        # Extract text with fresh parser
+        documents = SimpleDirectoryReader(
+            input_files=[file_path],
+            file_extractor=fresh_extractor
+        ).load_data()
+        
+        if not documents:
+            print(f"✗ No text extracted from {filename}")
+            return ""
+        
+        text = "\n".join(doc.text for doc in documents).strip()
+        print(f"✓ OCR success: {filename} ({len(text)} chars)")
+        
+        # Clean up parser (allows its event loop to close properly)
+        del fresh_parser
+        del fresh_extractor
+        gc.collect()  # Force garbage collection to clean up old event loops
+        
+        return text
+        
+    except Exception as e:
+        error_msg = str(e)
+        print(f"✗ OCR failed: {error_msg[:150]}")
+        
+        # On error, still try to clean up
+        try:
+            gc.collect()
+        except:
+            pass
+        
+        return ""
+
+

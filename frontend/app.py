@@ -92,16 +92,20 @@ if uploaded_files:
         # STEP 1: PATIENT SUMMARY
         st.markdown("<div class='step-header'>🧑 STEP 1: PATIENT SUMMARY</div>", unsafe_allow_html=True)
         p_data = analysis.get("patient_data", {})
+        s_data = analysis.get("summary_for_human", "No summary available.")
+        d_data = analysis.get("disease_explanation", "No disease explanation available.")
+        h_data = analysis.get("hospital_guide", "No hospital guide available.")
+
         st.markdown(f"""
         <div class='clinical-text'>
         <b>Patient:</b> {p_data.get('patient_name')} | <b>Age:</b> {p_data.get('patient_age')} | <b>Sex:</b> {p_data.get('patient_sex')}<br><br>
-        {analysis.get('summary_for_human', 'No summary available.')}
+        {s_data}
         </div>
         """, unsafe_allow_html=True)
 
         # STEP 2: DIAGNOSIS EXPLANATION
         st.markdown("<div class='step-header'>🩺 STEP 2: DIAGNOSIS EXPLANATION</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='clinical-text'>{analysis.get('disease_explanation', 'No explanation available.')}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='clinical-text'>{d_data}</div>", unsafe_allow_html=True)
 
         # STEP 3: MEDICATION INFO
         st.markdown("<div class='step-header'>💊 STEP 3: MEDICATION INFO</div>", unsafe_allow_html=True)
@@ -114,7 +118,7 @@ if uploaded_files:
 
         # STEP 4: HOSPITAL GUIDE & NEXT STEPS
         st.markdown("<div class='step-header'>🏥 STEP 4: HOSPITAL GUIDE & NEXT STEPS</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='clinical-text'>{analysis.get('hospital_guide', 'Next steps not provided.')}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='clinical-text'>{h_data}</div>", unsafe_allow_html=True)
 
 # Footer
 st.markdown("---")

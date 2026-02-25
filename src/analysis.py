@@ -7,7 +7,7 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 from openai import OpenAI, APIStatusError
 
-from src.textextraction import extract_text_from_image_async
+from src.textextraction import extract_text_from_image
 from src.pdfconverter import pdf_to_images # Integrated PDF conversion logic
 from src.config import VISION_MODEL_NAME
 
@@ -63,15 +63,20 @@ Rules for Generation & Extraction:
 - Recommend specialist type only if names are not present in the document.
 
 **SECTION 6 - VALIDATION RULES (STRICT AUDIT):**
-Analyze the document for these 4 specific elements:
-1. Patient Name
-2. Date/reported/collected/appointment
-3. Medication without Dosages (Note: Lab results like CBC/RBC are NOT medications)
-4. Physician Signature/Stamp Signature/Digital Signature/Doctor Siganture
+Analyze the document for these 4 specific compliance elements. Return "Found" ONLY if the element is clearly present:
+
+1. **Patient Name**: Look for patient's full name or at least first and last name. Valid indicators: "Name:", "Patient:", "MR.", "Patient Name", "Pt:". If name field is blank or says "N/A", mark as "Missing".
+
+2. **Date**: Look for any date field (appointment date, report date, prescription date, visit date, collected date). Valid indicators: "Date:", "Date of Report:", "Date of Visit:", "Appointment:", specific dates like "12/15/2025". If no date is present, mark as "Missing".
+
+3. **Medication**: Look for ANY medication name with dosage information (e.g., "Aspirin 500mg", "Metformin Twice daily"). Do NOT count lab results (CBC, RBC, Blood Pressure, etc.). If no medications are listed with dosages, mark as "Missing".
+
+4. **Physician Signature**: Look for doctor's name/signature line, stamp, digital signature marker, or authentication. Valid indicators: "Dr.", "Signature:", "/s/", signature block, doctor's name with title. If no signature, stamp, or doctor identifier is present, mark as "Missing".
 
 **VALIDATION LOGIC:**
-- If ANY of these 4 are missing, the status is "FAILED".
-- **CRITICAL RULE**: If the document fails, the `failure_reason` must list **ONLY** the specific items that are missing. Do not mention items that were found.
+- Mark as "Found" ONLY if the element is clearly and unmistakably present in the document.
+- If ANY of these 4 are missing, the document status is "FAILED".
+- **CRITICAL RULE**: If the document fails, list **ONLY** the specific items that are missing in failure_reason.
 
 **OUTPUT FORMAT:**
 Return STRICT JSON only.
@@ -127,7 +132,7 @@ async def classify_document(file_path: str) -> Dict[str, Any]:
     Consolidates text extraction and multimodal visual analysis.
     """
     # Step 1: Extract text asynchronously (All pages of PDF or Image)
-    ocr_text = await extract_text_from_image_async(file_path)
+    ocr_text = extract_text_from_image(file_path)
     
     # Prepare multimodal message
     messages = [
