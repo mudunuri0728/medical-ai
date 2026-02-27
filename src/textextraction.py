@@ -18,7 +18,6 @@ ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"}
 MIN_FILE_SIZE = 1024  # 1 KB minimum
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB maximum
 
-
 # --------------------------------------------------
 # FILE VALIDATION
 # --------------------------------------------------
